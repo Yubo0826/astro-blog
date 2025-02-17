@@ -1,0 +1,93 @@
+---
+heroImage: /src/assets/images/banner.jpg
+category: Javascript
+description: Session-based Authentication 和 Token-based Authentication 詳細的比較
+pubDate: 2025-02-16T16:00:00.000Z
+tags:
+  - Authentication
+  - Security
+  - Web
+title: 認證機制：Session-based vs Token-based
+---
+
+Session-based Authentication 和 Token-based Authentication 是兩種不同的身份驗證方式，各有優缺點，適用於不同的應用場景。以下是詳細的比較：
+
+---
+
+## Session-based Authentication（基於 Session 的身份驗證）
+
+> 登入資訊存放後端
+
+### 機制
+
+- 使用者登入時，後端產生 Session 並存入伺服器的記憶體或資料庫。
+- 伺服器回傳 Session ID（通常存於 HttpOnly Cookie）。
+- 後續請求時，瀏覽器自動帶上 Session ID，後端比對確認身份。
+
+### 流程
+
+1. 使用者登入 → 伺服器驗證帳號密碼 → 生成 Session ID 存入伺服器。
+2. 伺服器透過 Set-Cookie 回應 Session ID（存於 HttpOnly Cookie）。
+3. 瀏覽器請求時自動帶上 Session ID，後端比對 Session ID 來確保身份。
+4. 登出時，後端刪除 Session，或等 Session 過期。
+
+## Token-based Authentication（基於 Token 的身份驗證）
+
+> 登入資訊存放前端
+
+### 機制
+
+- 使用者登入時，後端產生 JWT（JSON Web Token），並回傳給前端。
+- 前端自行決定放在哪裡（Cookie、localstorafe、框架狀態管理等）。
+- 每次請求時，前端將 accessToken 放入 Authorization: Bearer \<token>，後端驗證 JWT。
+
+### 流程
+
+1. 使用者登入 → 伺服器驗證帳密 → 生成 JWT accessToken & refreshToken。
+2. 回傳 accessToken給前端。
+3. 後續請求時，前端加上 Authorization: Bearer \<accessToken>。
+4. Token 過期時，前端使用 refreshToken 取得新 Token。
+5. 登出時，清除 Token，或等待 Token 過期。
+
+### 特點
+
+- 無狀態（Stateless）：登入資訊不需要存放於伺服器，減少伺服器負擔。
+- 可以使用於 Web 以外的應用：不受 Cookie 限制。
+- 易於橫向擴展（Scaling）：伺服器無需存 Session，每台機器都能驗證 Token。
+- 跨域友好：不同前端應用（Web / Mobile / API Gateway）都能使用相同 Token。
+
+### 補充
+
+> Token-based 更容易與 OAuth / Firebase 整合
+
+現代身份驗證（如 Google 登入、Facebook 登入、Firebase Auth）大多使用 Token-based，因為：
+
+- OAuth 2.0 預設使用 accessToken 和 refreshToken，與 Token-based 完美兼容。
+- SPA 通常會與第三方身份驗證（如 Google、Facebook、GitHub、Microsoft）整合，這些平台返回的也是 Token，而非 Session。
+- Firebase Authentication / AWS Cognito 等雲端身份驗證方案，主要使用 Token-based。
+
+👉 如果你的應用有第三方登入需求，Token-based 會更容易整合。
+
+---
+
+## Session-based vs. Token-based
+
+| 比較項目   | Session-based Authentication | Token-based Authentication            |
+| ---------- | ---------------------------- | ------------------------------------- |
+| 存儲方式   | 後端存 Session               | 前端存 accessToken                    |
+| 伺服器負擔 | 較高（需存 Session）         | 較低（Stateless）                     |
+| 適用場景   | Web 應用                     | 前後端不同源之應用 / Mobile App / API |
+| 跨域支援   | 受限於 Cookie SameSite       | 容易（Token 存於 http 標頭傳遞）      |
+| 登出方式   | 伺服器刪除 Session           | 刪除 Token，或等待 Token 過期         |
+| 可擴展性   | 較低（需共享 Session）       | 較高（任意伺服器可驗證 Token）        |
+| XSS 風險   | 低（Session 存伺服器）       | 高（如果 Token 存於 localStorage）    |
+| CSRF 風險  | 高（使用 Cookie）            | 低（使用 Authorization 標頭）         |
+
+---
+
+## 外部資料
+
+1. [後端如何相信 accessToken](https://kucw.io/blog/jwt-signature/)
+2. [Session 和 JWT 的差別在哪裡？](https://kucw.io/blog/session-vs-jwt/)
+3. [JWT(JSON Web Token) — 原理介紹](https://medium.com/%E4%BC%81%E9%B5%9D%E4%B9%9F%E6%87%82%E7%A8%8B%E5%BC%8F%E8%A8%AD%E8%A8%88/jwt-json-web-token-%E5%8E%9F%E7%90%86%E4%BB%8B%E7%B4%B9-74abfafad7ba)
+4. [什麼是JWT？認識 JSON Web Token 認證機制](https://tw.alphacamp.co/blog/jwt-json-web-token)
