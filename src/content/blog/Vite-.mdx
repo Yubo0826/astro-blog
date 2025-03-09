@@ -1,11 +1,132 @@
 ---
 heroImage: /src/assets/images/social-2.png
 category: Vite
-description: '123'
+description: 紀錄 Vite 處理動態路徑的方式
 pubDate: 2025-02-11T16:00:00.000Z
-title: Vite 處理動態圖片路徑
+tags:
+  - Webpack
+  - Vue
+  - Vite
+title: Vite & Webpack 引用資源方式整理
 ---
 
-## 前言
+這篇紀錄一下在前端開發中，以 Vite & Webpack 視角整理資源引入的各種方式，需先搞清楚以下的差異：
 
-在以前的 build tool 還是使用 wepack 的 Vue 專案中，如果要動態加載圖片
+- 靜態路徑與動態路徑
+- 靜態資源和非靜態資源
+
+再來各種引入的方式：
+
+- 不同方式引入資源
+- Vite 和 Webpack 在動態引入資源處理上的差異
+
+> 以下程式範例皆是 Vue 語法。
+
+## 靜態路徑和動態路徑
+
+### 1.靜態路徑
+
+指的是寫死的、固定不變的資源路徑，例如：
+
+```html
+<img src = "../assets/img/logo.png" ></img>
+```
+
+這種寫法在 build 時，打包工具（Vite 或 Webpack）會自動解析並處理資源。
+
+### 2.動態路徑
+
+是根據變數或函式動態產生的路徑，例如：
+
+```html
+<img src="getImage(item.name)"></img>
+
+<? OR ?>
+
+<img v-for="item in data" :src="item.name"></img>
+```
+
+這類寫法的圖片來源是動態的，因此在編譯時無法辨識具體的圖片位置，因此需要透過特殊的方式來確保路徑正確。Vite 或 Webpack 中處理這兩類的方式有些許差異，下面會介紹到。
+
+## 靜態資源和非靜態資源
+
+### 1.靜態資源
+
+在 Vite 和 Webpack 專案中有一個public資料夾，專門存放靜態資源，放在此資料夾不會被打包或編譯，而是直接作為原始文件提供給瀏覽器使用。
+
+假設 /public/img/logo.png 內有一張圖片，則可以這樣引用：
+
+```html
+<img src="/img/logo.png"></img>
+```
+
+此種寫法使用的是 絕對路徑。
+
+### 2.非靜態資源
+
+與 public 目錄不同，放在 /src/assets/ 內的資源會被打包工具處理（例如轉換為 Base64、壓縮、變更文件名等）。這類資源需要使用 import 或其他方式來引用。
+
+## 引入資源的方式
+
+引入資源的方式有以下幾種：
+
+### 1.使用 import
+
+```html
+<template>
+  <img :src="logo"></img>
+</template >
+  <script>
+    import logo from '@/assets/img/logo.png'
+  </script>
+```
+
+### 2.使用相對路徑
+
+適合簡單的情境，但無法動態載入：
+
+```html
+<template>
+  <img src="../assets/img/logo.png"></img>
+</template>
+```
+
+### 3.使用public靜態資源
+
+通常 Vite 或 Vue Cli ( Webpack ) 預設是public資料夾，public 內的資源不會被 Vite 或 Webpack 處理，因此適用於 favicon、robots.txt 、字型等不需打包的靜態資源。
+
+```html
+<template>
+	<img src="/img/logo.png" alt="Logo" />
+</template>
+```
+
+可以參考 [Vue CLI 靜態資源處理](https://cli.vuejs.org/zh/guide/html-and-static-assets.html#%E5%A4%84%E7%90%86%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90) 和 [Vite 靜態資源處理](https://cn.vite.dev/guide/assets.html#static-asset-handling)
+
+## 動態引入資源（Vite vs. Webpack）
+
+此處是 Vite 和 Webpack 比較不同的地方：
+
+### Webpack：使用 require()
+
+```html
+<img v-for="item in data" : src="require(item.name)"></img>
+```
+
+### Vite：使用 new URL()
+
+因為 Vite 是基於 ESM，所以不支持 Common.js 的require()。
+
+在 Vite 中，應該使用 new URL() 來獲取動態資源的正確路徑：
+
+```html
+<img v-for="item in data" :src="getAssetsImg(item.name)"></img>
+
+<script setup>
+const getAssetsImg = (name) => {
+	return new URL(`../../assets/img/${name}`, import.meta.url).href
+}
+</script>
+```
+
+new URL()會返回一個 url物件，這個物件有href屬性，包含完整URL。詳情[參考](https://cn.vite.dev/guide/assets#new-url-url-import-meta-url)
